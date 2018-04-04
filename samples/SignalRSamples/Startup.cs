@@ -23,6 +23,9 @@ namespace SignalRSamples
             {
                 // Faster pings for testing
                 options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+
+                // Detailed errors
+                options.EnableDetailedErrors = true;
             })
             .AddMessagePackProtocol(options =>
             {
