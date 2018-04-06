@@ -178,6 +178,25 @@ namespace Microsoft.AspNetCore.SignalR
                         {
                             while (connection.Protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
                             {
+                                if (message is CloseMessage closeMessage)
+                                {
+                                    // Terminate the connection, the client is going away
+                                    if (string.IsNullOrEmpty(closeMessage.Error))
+                                    {
+                                        // Graceful shutdown, just return
+                                        Log.ConnectionClosedByClient(_logger);
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        // Client reported an error, propagate that to the OnDisconnectedAsync
+                                        // event by throwing here.
+                                        // REVIEW: Custom exception type?
+                                        var ex = new Exception($"The client closed the connection with an error: {closeMessage.Error}");
+                                        throw ex;
+                                    }
+                                }
+
                                 // Don't wait on the result of execution, continue processing other
                                 // incoming messages on this connection.
                                 _ = _dispatcher.DispatchMessageAsync(connection, message);
@@ -224,6 +243,9 @@ namespace Microsoft.AspNetCore.SignalR
             private static readonly Action<ILogger, Exception> _connectedEnding =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(6, "ConnectedEnding"), "OnConnectedAsync ending.");
 
+            private static readonly Action<ILogger, Exception> _connectionClosedByClient =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(7, "ConnectionClosedByClient"), "Connection closed by the client.");
+
             public static void ErrorDispatchingHubEvent(ILogger logger, string hubMethod, Exception exception)
             {
                 _errorDispatchingHubEvent(logger, hubMethod, exception);
@@ -252,6 +274,11 @@ namespace Microsoft.AspNetCore.SignalR
             public static void ConnectedEnding(ILogger logger)
             {
                 _connectedEnding(logger, null);
+            }
+
+            public static void ConnectionClosedByClient(ILogger logger)
+            {
+                _connectionClosedByClient(logger, null);
             }
         }
     }

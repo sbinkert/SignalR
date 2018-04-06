@@ -30,6 +30,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, string, string, Exception> _messageSent =
                 LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(6, "MessageSent"), "Sending {MessageType} message '{InvocationId}' completed.");
 
+            private static readonly Action<ILogger, string, Exception> _sendingMessageNoId =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, "SendingMessage"), "Sending {MessageType} message.");
+
+            private static readonly Action<ILogger, string, Exception> _messageSentNoId =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6, "MessageSent"), "Sending {MessageType} message completed.");
+
             private static readonly Action<ILogger, string, Exception> _failedToSendInvocation =
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(7, "FailedToSendInvocation"), "Sending Invocation '{InvocationId}' failed.");
 
@@ -168,6 +174,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, long, Exception> _processingMessage =
                 LoggerMessage.Define<long>(LogLevel.Debug, new EventId(56, "ProcessingMessage"), "Processing {MessageLength} byte message from server.");
 
+            private static readonly Action<ILogger, Exception> _errorSendingCloseMessage =
+                LoggerMessage.Define(LogLevel.Error, new EventId(57, "ErrorSendingCloseMessage"), "An error occurred while sending the close message.");
+
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
                 _preparingNonBlockingInvocation(logger, target, count, null);
@@ -197,19 +206,33 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
             }
 
-            public static void SendingMessage(ILogger logger, HubInvocationMessage message)
+            public static void SendingMessage(ILogger logger, HubMessage message)
             {
                 if (logger.IsEnabled(LogLevel.Debug))
                 {
-                    _sendingMessage(logger, message.GetType().Name, message.InvocationId, null);
+                    if (message is HubInvocationMessage invocationMessage)
+                    {
+                        _sendingMessage(logger, message.GetType().Name, invocationMessage.InvocationId, null);
+                    }
+                    else
+                    {
+                        _sendingMessageNoId(logger, message.GetType().Name, null);
+                    }
                 }
             }
 
-            public static void MessageSent(ILogger logger, HubInvocationMessage message)
+            public static void MessageSent(ILogger logger, HubMessage message)
             {
                 if (logger.IsEnabled(LogLevel.Debug))
                 {
-                    _messageSent(logger, message.GetType().Name, message.InvocationId, null);
+                    if (message is HubInvocationMessage invocationMessage)
+                    {
+                        _messageSent(logger, message.GetType().Name, invocationMessage.InvocationId, null);
+                    }
+                    else
+                    {
+                        _messageSentNoId(logger, message.GetType().Name, null);
+                    }
                 }
             }
 
@@ -443,6 +466,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             public static void UnableToSendCancellation(ILogger logger, string invocationId)
             {
                 _unableToSendCancellation(logger, invocationId, null);
+            }
+
+            public static void ErrorSendingCloseMessage(ILogger logger, Exception ex)
+            {
+                _errorSendingCloseMessage(_logger, ex);
             }
         }
     }

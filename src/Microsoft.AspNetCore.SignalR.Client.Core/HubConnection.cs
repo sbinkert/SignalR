@@ -339,16 +339,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task SendHubMessage(HubInvocationMessage hubMessage, CancellationToken cancellationToken = default)
-        {
-            AssertConnectionValid();
+        private Task SendHubMessage(HubMessage hubMessage, CancellationToken cancellationToken = default)
+            => SendHubMessage(_connectionState, hubMessage, cancellationToken);
 
-            _protocol.WriteMessage(hubMessage, _connectionState.Connection.Transport.Output);
+        private async Task SendHubMessage(ConnectionState connectionState, HubMessage hubMessage, CancellationToken cancellationToken = default)
+        {
+            _protocol.WriteMessage(hubMessage, connectionState.Connection.Transport.Output);
 
             Log.SendingMessage(_logger, hubMessage);
 
             // REVIEW: If a token is passed in and is cancelled during FlushAsync it seems to break .Complete()...
-            await _connectionState.Connection.Transport.Output.FlushAsync();
+            await connectionState.Connection.Transport.Output.FlushAsync();
 
             Log.MessageSent(_logger, hubMessage);
         }
@@ -655,6 +656,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
             finally
             {
                 ReleaseConnectionLock();
+            }
+
+            // We know the sending code has no access to the connection anymore, so we can safely write our close frame
+            try
+            {
+                var message = connectionState.CloseException == null ? CloseMessage.Empty : new CloseMessage(connectionState.CloseException.Message);
+                await SendHubMessage(connectionState, message, default(CancellationToken));
+            }
+            catch(Exception ex)
+            {
+                // Don't care if this fails, we need to keep shutting down.
+                Log.ErrorSendingCloseMessage(_logger, ex);
             }
 
             // Stop the timeout timer.
