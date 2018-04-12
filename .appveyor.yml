@@ -7,7 +7,7 @@ branches:
   - /^release\/.*$/
   - /^(.*\/)?ci-.*$/
 build_script:
-- ps: .\run.ps1 -ci default-build
+- ps: .\cycletest.ps1
 on_finish:
 - ps: 7z a testlogs.zip testlogs
 - ps: Push-AppveyorArtifact testlogs.zip
