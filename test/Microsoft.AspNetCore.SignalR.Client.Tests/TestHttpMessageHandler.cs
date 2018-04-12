@@ -3,16 +3,20 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public class TestHttpMessageHandler : HttpMessageHandler
     {
         private Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
+        private ILogger _logger;
 
-        public TestHttpMessageHandler(bool autoNegotiate = true)
+        public TestHttpMessageHandler(bool autoNegotiate = true, ILoggerFactory loggerFactory = null)
         {
             _handler = (request, cancellationToken) => BaseHandler(request, cancellationToken);
+            _logger = loggerFactory == null ? (ILogger)NullLogger.Instance : loggerFactory.CreateLogger<TestHttpMessageHandler>();
 
             if (autoNegotiate)
             {
@@ -24,7 +28,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             await Task.Yield();
 
-            return await _handler(request, cancellationToken);
+            _logger.LogInformation("{Method} {Url}", request.Method, request.RequestUri);
+            var response = await _handler(request, cancellationToken);
+            _logger.LogInformation("{StatusCode} {Url}", (int)response.StatusCode, request.RequestUri);
+
+            return response;
         }
 
         public static TestHttpMessageHandler CreateDefault()

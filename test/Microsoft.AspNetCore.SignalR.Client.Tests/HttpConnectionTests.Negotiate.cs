@@ -8,16 +8,22 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public partial class HttpConnectionTests
     {
-        public class Negotiate
+        public class Negotiate : LoggedTest
         {
+            public Negotiate(ITestOutputHelper output) : base(output)
+            {
+            }
+
             [Theory]
             [InlineData("")]
             [InlineData("Not Json")]
@@ -55,25 +61,25 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [InlineData("http://fakeuri.org/endpoint?q=1/0", "http://fakeuri.org/endpoint/negotiate?q=1/0")]
             public async Task CorrectlyHandlesQueryStringWhenAppendingNegotiateToUrl(string requestedUrl, string expectedNegotiate)
             {
-                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
-
-                var negotiateUrlTcs = new TaskCompletionSource<string>();
-                testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
-                testHttpHandler.OnNegotiate((request, cancellationToken) =>
+                using (StartLog(out var loggerFactory, testName: $"{nameof(CorrectlyHandlesQueryStringWhenAppendingNegotiateToUrl)}_{requestedUrl}_{expectedNegotiate}"))
                 {
-                    negotiateUrlTcs.TrySetResult(request.RequestUri.ToString());
-                    return ResponseUtils.CreateResponse(HttpStatusCode.OK,
-                        ResponseUtils.CreateNegotiationContent());
-                });
+                    var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false, loggerFactory: loggerFactory);
 
-                await WithConnectionAsync(
-                    CreateConnection(testHttpHandler, url: requestedUrl),
-                    async (connection) =>
+                    var negotiateUrlTcs = new TaskCompletionSource<string>();
+                    testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
+                    testHttpHandler.OnNegotiate((request, cancellationToken) =>
                     {
-                        await connection.StartAsync(TransferFormat.Text).OrTimeout();
+                        negotiateUrlTcs.TrySetResult(request.RequestUri.ToString());
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                            ResponseUtils.CreateNegotiationContent());
                     });
 
-                Assert.Equal(expectedNegotiate, await negotiateUrlTcs.Task.OrTimeout());
+                    await WithConnectionAsync(
+                        CreateConnection(testHttpHandler, url: requestedUrl, loggerFactory: loggerFactory),
+                        async (connection) => { await connection.StartAsync(TransferFormat.Text).OrTimeout(); });
+
+                    Assert.Equal(expectedNegotiate, await negotiateUrlTcs.Task.OrTimeout());
+                }
             }
 
             [Fact]
