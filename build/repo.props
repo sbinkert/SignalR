@@ -4,6 +4,7 @@
   <PropertyGroup>
     <EnableBenchmarkValidation>true</EnableBenchmarkValidation>
 	<LogOutputDir Condition=" '$(APPVEYOR_BUILD_FOLDER)' != '' ">$(APPVEYOR_BUILD_FOLDER)\testlogs</LogOutputDir>
+	<SkipArtifactVerification>true</SkipArtifactVerification>
   </PropertyGroup>
 
   <ItemGroup>
