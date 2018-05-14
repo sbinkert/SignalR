@@ -21,6 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
     {
         private readonly HubConnectionStore _connections = new HubConnectionStore();
         // TODO: Investigate "memory leak" entries never get removed
+
         private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>(StringComparer.Ordinal);
         private IConnectionMultiplexer _redisServerConnection;
         private ISubscriber _bus;
@@ -33,6 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private readonly AckHandler _ackHandler;
         private int _internalId;
+        private RedisSubscriptionManager _userSubscriptions;
 
         public RedisHubLifetimeManager(ILogger<RedisHubLifetimeManager<THub>> logger,
                                        IOptions<RedisOptions> options,
@@ -467,7 +469,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             redisSubscriptions.Add(userChannel);
 
             // TODO: Look at optimizing (looping over connections checking for Name)
-            return _bus.SubscribeAsync(userChannel, async (c, data) =>
+            return _userSubscriptions.SubscribeAsync(userChannel, async (c, data) =>
             {
                 var invocation = _protocol.ReadInvocation((byte[])data);
                 await connection.WriteAsync(invocation.Message);
@@ -551,6 +553,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                         SubscribeToAll();
                         SubscribeToGroupManagementChannel();
                         SubscribeToAckChannel();
+
+                        // Create the subscription managers
+                        _userSubscriptions = new RedisSubscriptionManager(_redisServerConnection);
                     }
                 }
                 finally
