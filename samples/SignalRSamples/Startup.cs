@@ -4,6 +4,7 @@
 using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using SignalRSamples.ConnectionHandlers;
 using SignalRSamples.Hubs;
@@ -23,8 +24,8 @@ namespace SignalRSamples
                 // Faster pings for testing
                 options.KeepAliveInterval = TimeSpan.FromSeconds(5);
             })
-            .AddMessagePackProtocol();
-            //.AddRedis();
+            .AddMessagePackProtocol()
+            .AddRedis();
 
             services.AddCors(o =>
             {
@@ -36,6 +37,8 @@ namespace SignalRSamples
                      .AllowCredentials();
                 });
             });
+
+            services.AddSingleton<IUserIdProvider, TerribleUserIdProvider>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -501,19 +501,44 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         }
 
         [Fact]
+        public async Task InvokeUserSendsToAllConnectionsForUser()
+        {
+            var server = new TestRedisServer();
+
+            var manager = CreateLifetimeManager(server);
+
+            using (var client1 = new TestClient())
+            using (var client2 = new TestClient())
+            using (var client3 = new TestClient())
+            {
+                var connection1 = HubConnectionContextUtils.Create(client1.Connection, userIdentifier: "userA");
+                var connection2 = HubConnectionContextUtils.Create(client2.Connection, userIdentifier: "userA");
+                var connection3 = HubConnectionContextUtils.Create(client3.Connection, userIdentifier: "userB");
+
+                await manager.OnConnectedAsync(connection1).OrTimeout();
+                await manager.OnConnectedAsync(connection2).OrTimeout();
+                await manager.OnConnectedAsync(connection3).OrTimeout();
+
+                await manager.SendUserAsync("userA", "Hello", new object[] { "World" }).OrTimeout();
+                await AssertMessageAsync(client1);
+                await AssertMessageAsync(client2);
+            }
+        }
+
+        [Fact]
         public async Task StillSubscribedToUserAfterOneOfMultipleConnectionsAssociatedWithUserDisconnects()
         {
             var server = new TestRedisServer();
 
             var manager = CreateLifetimeManager(server);
 
-            using (var client1 = new TestClient(userIdentifier: "userA"))
-            using (var client2 = new TestClient(userIdentifier: "userA"))
-            using (var client3 = new TestClient(userIdentifier: "userB"))
+            using (var client1 = new TestClient())
+            using (var client2 = new TestClient())
+            using (var client3 = new TestClient())
             {
-                var connection1 = HubConnectionContextUtils.Create(client1.Connection);
-                var connection2 = HubConnectionContextUtils.Create(client2.Connection);
-                var connection3 = HubConnectionContextUtils.Create(client3.Connection);
+                var connection1 = HubConnectionContextUtils.Create(client1.Connection, userIdentifier: "userA");
+                var connection2 = HubConnectionContextUtils.Create(client2.Connection, userIdentifier: "userA");
+                var connection3 = HubConnectionContextUtils.Create(client3.Connection, userIdentifier: "userB");
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();

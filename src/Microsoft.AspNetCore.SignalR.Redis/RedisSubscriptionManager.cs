@@ -9,7 +9,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
     internal class RedisSubscriptionManager
     {
         private readonly ISubscriber _redisSubscriber;
-        private readonly SemaphoreSlim _lock = new SemaphoreSlim();
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<string, int> _refCounts = new Dictionary<string, int>();
 
         public RedisSubscriptionManager(ISubscriber redisSubscriber)

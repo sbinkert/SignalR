@@ -517,6 +517,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                         var writer = new LoggerTextWriter(_logger);
                         _redisServerConnection = await _options.ConnectAsync(writer);
                         _bus = _redisServerConnection.GetSubscriber();
+
+                        // Create the subscription managers
+                        _userSubscriptions = new RedisSubscriptionManager(_bus);
+
                         _redisServerConnection.ConnectionRestored += (_, e) =>
                         {
                             // We use the subscription connection type
@@ -553,9 +557,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                         SubscribeToAll();
                         SubscribeToGroupManagementChannel();
                         SubscribeToAckChannel();
-
-                        // Create the subscription managers
-                        _userSubscriptions = new RedisSubscriptionManager(_redisServerConnection);
                     }
                 }
                 finally
