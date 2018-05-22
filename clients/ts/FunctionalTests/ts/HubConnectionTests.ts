@@ -573,6 +573,8 @@ describe("hubConnection", () => {
 
                 // Check what transport was used by asking the server to tell us.
                 expect(await hubConnection.invoke("GetActiveTransportName")).toEqual("ServerSentEvents");
+
+                await hubConnection.stop();
                 done();
             } catch (e) {
                 fail(e);
@@ -590,6 +592,8 @@ describe("hubConnection", () => {
 
             // Check what transport was used by asking the server to tell us.
             expect(await hubConnection.invoke("GetActiveTransportName")).toEqual("LongPolling");
+
+            await hubConnection.stop();
             done();
         } catch (e) {
             fail(e);
@@ -614,6 +618,7 @@ describe("hubConnection", () => {
             // Make sure that we connect with SSE or LongPolling after Websockets fail
             const transportName = await hubConnection.invoke("GetActiveTransportName");
             expect(transportName === "ServerSentEvents" || transportName === "LongPolling").toBe(true);
+            await hubConnection.stop();
         } catch (e) {
             fail(e);
         } finally {
@@ -681,6 +686,8 @@ describe("hubConnection", () => {
             expect(await hubConnection.invoke("GetActiveTransportName")).toEqual("LongPolling");
             // Check to see that the Content-Type header is set the expected value
             expect(await hubConnection.invoke("GetContentTypeHeader")).toEqual("text/plain;charset=UTF-8");
+
+            await hubConnection.stop();
             done();
         } catch (e) {
             fail(e);
