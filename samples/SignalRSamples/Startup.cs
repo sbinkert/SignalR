@@ -72,6 +72,7 @@ namespace SignalRSamples
                 {
                     var attributes = Assembly.GetAssembly(typeof(Startup)).GetCustomAttributes<AssemblyMetadataAttribute>();
 
+                    context.Response.ContentType = "application/json";
                     using (var textWriter = new StreamWriter(context.Response.Body))
                     using (var writer = new Newtonsoft.Json.JsonTextWriter(textWriter))
                     {
