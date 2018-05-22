@@ -4,7 +4,7 @@
 import { HttpTransportType, IHubProtocol, JsonHubProtocol } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-export const ECHOENDPOINT_URL = "http://" + document.location.host + "/echo";
+export const ECHOENDPOINT_URL = document.location.protocol + "//" + document.location.host + "/echo";
 
 export function getHttpTransportTypes(): HttpTransportType[] {
     const transportTypes = [];
