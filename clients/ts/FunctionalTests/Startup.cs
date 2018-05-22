@@ -3,6 +3,8 @@
 
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -103,6 +105,40 @@ namespace FunctionalTests
                     await context.Response.WriteAsync(GenerateJwtToken());
                     return;
                 }
+            });
+
+            app.Use(next => (context) =>
+            {
+                if (context.Request.Path.StartsWithSegments("/deployment"))
+                {
+                    var attributes = Assembly.GetAssembly(typeof(Startup)).GetCustomAttributes<AssemblyMetadataAttribute>();
+
+                    using (var textWriter = new StreamWriter(context.Response.Body))
+                    using (var writer = new Newtonsoft.Json.JsonTextWriter(textWriter))
+                    {
+                        var commitHash = string.Empty;
+                        writer.WriteStartObject();
+                        foreach (var attribute in attributes)
+                        {
+                            writer.WritePropertyName(attribute.Key);
+                            writer.WriteValue(attribute.Value);
+
+                            if (string.Equals(attribute.Key, "CommitHash"))
+                            {
+                                commitHash = attribute.Value;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(commitHash))
+                        {
+                            writer.WritePropertyName("GitHubUrl");
+                            writer.WriteValue($"https://github.com/aspnet/SignalR/commit/{commitHash}");
+                        }
+
+                        writer.WriteEndObject();
+                    }
+                }
+                return Task.CompletedTask;
             });
         }
 

@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.IO;
+using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,6 +64,40 @@ namespace SignalRSamples
             app.UseConnections(routes =>
             {
                 routes.MapConnectionHandler<MessagesConnectionHandler>("/chat");
+            });
+
+            app.Use(next => (context) =>
+            {
+                if (context.Request.Path.StartsWithSegments("/deployment"))
+                {
+                    var attributes = Assembly.GetAssembly(typeof(Startup)).GetCustomAttributes<AssemblyMetadataAttribute>();
+
+                    using (var textWriter = new StreamWriter(context.Response.Body))
+                    using (var writer = new Newtonsoft.Json.JsonTextWriter(textWriter))
+                    {
+                        var commitHash = string.Empty;
+                        writer.WriteStartObject();
+                        foreach (var attribute in attributes)
+                        {
+                            writer.WritePropertyName(attribute.Key);
+                            writer.WriteValue(attribute.Value);
+
+                            if (string.Equals(attribute.Key, "CommitHash"))
+                            {
+                                commitHash = attribute.Value;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(commitHash))
+                        {
+                            writer.WritePropertyName("GitHubUrl");
+                            writer.WriteValue($"https://github.com/aspnet/SignalR/commit/{commitHash}");
+                        }
+
+                        writer.WriteEndObject();
+                    }
+                }
+                return Task.CompletedTask;
             });
         }
     }
