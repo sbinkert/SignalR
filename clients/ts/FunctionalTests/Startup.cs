@@ -105,10 +105,7 @@ namespace FunctionalTests
                     await context.Response.WriteAsync(GenerateJwtToken());
                     return;
                 }
-            });
 
-            app.Use(next => (context) =>
-            {
                 if (context.Request.Path.StartsWithSegments("/deployment"))
                 {
                     var attributes = Assembly.GetAssembly(typeof(Startup)).GetCustomAttributes<AssemblyMetadataAttribute>();
@@ -138,7 +135,6 @@ namespace FunctionalTests
                         writer.WriteEndObject();
                     }
                 }
-                return Task.CompletedTask;
             });
         }
 
