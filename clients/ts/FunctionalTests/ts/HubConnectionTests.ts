@@ -4,7 +4,7 @@
 import { AbortError, DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnection, HubConnectionBuilder, IHttpConnectionOptions, IStreamSubscriber, JsonHubProtocol, LogLevel } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-import { eachTransport, eachTransportAndProtocol } from "./Common";
+import { eachTransport, eachTransportAndProtocol, ENDPOINT_BASE_URL } from "./Common";
 import { TestLogger } from "./TestLogger";
 
 const TESTHUBENDPOINT_URL = "/testhub";
@@ -345,7 +345,7 @@ describe("hubConnection", () => {
             });
 
             it("closed with error if hub cannot be created", (done) => {
-                const hubConnection = getConnectionBuilder(transportType, document.location.protocol + "//" + document.location.host + "/uncreatable")
+                const hubConnection = getConnectionBuilder(transportType, ENDPOINT_BASE_URL + "/uncreatable")
                     .withHubProtocol(protocol)
                     .build();
 
@@ -496,7 +496,7 @@ describe("hubConnection", () => {
                 const message = "你好，世界！";
 
                 try {
-                    const jwtToken = await getJwtToken(document.location.protocol + "//" + document.location.host + "/generateJwtToken");
+                    const jwtToken = await getJwtToken(ENDPOINT_BASE_URL + "/generateJwtToken");
 
                     const hubConnection = getConnectionBuilder(transportType, "/authorizedhub", {
                         accessTokenFactory: () => jwtToken,
@@ -525,7 +525,7 @@ describe("hubConnection", () => {
 
                 try {
                     const hubConnection = getConnectionBuilder(transportType, "/authorizedhub", {
-                        accessTokenFactory: () => getJwtToken(document.location.protocol + "//" + document.location.host + "/generateJwtToken"),
+                        accessTokenFactory: () => getJwtToken(ENDPOINT_BASE_URL + "/generateJwtToken"),
                     }).build();
 
                     hubConnection.onclose((error) => {

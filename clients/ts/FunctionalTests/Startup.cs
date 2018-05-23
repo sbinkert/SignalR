@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 namespace FunctionalTests
@@ -112,14 +114,14 @@ namespace FunctionalTests
 
                     context.Response.ContentType = "application/json";
                     using (var textWriter = new StreamWriter(context.Response.Body))
-                    using (var writer = new Newtonsoft.Json.JsonTextWriter(textWriter))
+                    using (var writer = new JsonTextWriter(textWriter))
                     {
+                        var json = new JObject();
                         var commitHash = string.Empty;
-                        writer.WriteStartObject();
+
                         foreach (var attribute in attributes)
                         {
-                            writer.WritePropertyName(attribute.Key);
-                            writer.WriteValue(attribute.Value);
+                            json.Add(attribute.Key, attribute.Value);
 
                             if (string.Equals(attribute.Key, "CommitHash"))
                             {
@@ -129,11 +131,10 @@ namespace FunctionalTests
 
                         if (!string.IsNullOrEmpty(commitHash))
                         {
-                            writer.WritePropertyName("GitHubUrl");
-                            writer.WriteValue($"https://github.com/aspnet/SignalR/commit/{commitHash}");
+                            json.Add("GitHubUrl", $"https://github.com/aspnet/SignalR/commit/{commitHash}");
                         }
 
-                        writer.WriteEndObject();
+                        json.WriteTo(writer);
                     }
                 }
             });
